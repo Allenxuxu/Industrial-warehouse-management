@@ -1,54 +1,58 @@
-#include "configdialog.h"
+#include "ConfigDialog.h"
 #include <QGridLayout>
 #include <QVBoxLayout>
-#include <QDebug>
-COnfigDialog::COnfigDialog()
+ConfigDialog::ConfigDialog(QWidget *parent) :
+    QDialog(parent)
 {
-    setFont(QFont("unifont",100,QFont::Normal));
-    setWindowFlags(Qt::FramelessWindowHint);
-    setWindowTitle(tr("请选择工位置号："));
-    OKBtn.setEnabled(false);
-    m_ret = 0;
-    textEdit.setReadOnly(true);
-    QGridLayout* glayout = new QGridLayout();
-    QVBoxLayout* vlayout = new QVBoxLayout(this);
-    for(int i=0;i<8;i++)
-    {
-        pushBtn[i].setText(QString::number(i+1));
-        glayout->addWidget(&pushBtn[i],i/4,i%4);
-    }
-    CloseBtn.setText(tr("取消"));
-    OKBtn.setText(tr("确认"));
-    glayout->addWidget(&CloseBtn,2,0);
-    glayout->addWidget(&OKBtn,2,3);
-
-    vlayout->addWidget(&textEdit);
-    vlayout->addSpacing(20);
-    vlayout->addLayout(glayout);
-
+    initUI();
+    m_id = 0;
     for(int i = 0;i<8;i++)
     {
-        connect(&pushBtn[i],SIGNAL(clicked()),this,SLOT(ongetPushBtnValue()));
+        connect(&m_pushBtn[i],SIGNAL(clicked()),this,SLOT(onBtnClicked()));
     }
 
-    connect(&CloseBtn,SIGNAL(clicked()),this,SLOT(close()));
-    connect(&OKBtn,SIGNAL(clicked()),this,SLOT(onOKBtn()));
+    connect(&m_CloseBtn,SIGNAL(clicked()),this,SLOT(close()));
+    connect(&m_OKBtn,SIGNAL(clicked()),this,SLOT(onOkBtnClicked()));
 }
 
-int COnfigDialog::getInt()
+int ConfigDialog::getID()
 {
-    return m_ret;
+    return m_id;
 }
 
-void COnfigDialog::ongetPushBtnValue()
+void ConfigDialog::onBtnClicked()
 {
-    OKBtn.setEnabled(true);
+    m_OKBtn.setEnabled(true);
     QPushButton* btn = dynamic_cast<QPushButton*>(sender());
-    textEdit.setText(btn->text());
+    m_textEdit.setText(btn->text());
 }
 
-void COnfigDialog::onOKBtn()
+void ConfigDialog::onOkBtnClicked()
 {
-    m_ret = textEdit.text().toInt();
+    m_id = m_textEdit.text().toInt();
     done(1);
+}
+
+void ConfigDialog::initUI()
+{
+   setWindowFlags(Qt::FramelessWindowHint);
+   setWindowTitle(tr("请选择工位置号："));
+   m_OKBtn.setEnabled(false);
+   m_textEdit.setReadOnly(true);
+   QGridLayout* glayout = new QGridLayout();
+   QVBoxLayout* vlayout = new QVBoxLayout(this);
+   for(int i=0;i<8;i++)
+   {
+       m_pushBtn[i].setText(QString::number(i+1));
+       glayout->addWidget(&m_pushBtn[i],i/4,i%4);
+   }
+   m_CloseBtn.setText(tr("取消"));
+   m_OKBtn.setText(tr("确认"));
+   glayout->addWidget(&m_CloseBtn,2,0);
+   glayout->addWidget(&m_OKBtn,2,3);
+
+   vlayout->addWidget(&m_textEdit);
+   vlayout->addSpacing(20);
+   vlayout->addLayout(glayout);
+
 }

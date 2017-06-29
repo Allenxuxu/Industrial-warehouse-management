@@ -1,43 +1,45 @@
 #ifndef WORKSTATION_H
 #define WORKSTATION_H
-
-#include <QWidget>
 #include <QDialog>
+#include <QWidget>
 #include <QPushButton>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
+#include <QByteArray>
 #include <QLabel>
-#include <QGridLayout>
-#include "qextserial.h"
-
+#include "SerialPort.h"
+#include <QList>
 class Workstation : public QDialog
 {
     Q_OBJECT
+   enum
+   {
+       MessageType_dataErr = 'e',
+       MessageType_calling = 'c',
+       MessageType_recvReply = 'g'
+   }MessageType;
 
-    char station_number;
-    QLabel label;
-    QextSerial* m_SerialPort;
-    QPushButton ledBtn;
-    QPushButton stateBtn;
-    QPushButton btn[9];
-    QGridLayout glayout;
-    QHBoxLayout hlayout;
-    Workstation(char number,QDialog *parent = 0);
-    bool initUI();
-    bool Construct();
+   SerialPort* m_SerialPort;
+   int  m_station_number;
+
+   QPushButton m_quickBtn;
+   QPushButton m_stateBtn;
+   QPushButton m_btn[9];
+
+    Workstation(int station_number,QDialog *parent = 0);
+    void initUI();
+    bool construct();
+    QByteArray packingMessages(char type, char data=0);
+    void updateDB(QList<QByteArray> array);
+    void receReply(char i);
 public:
-    static Workstation* NewWorkstation(char number);
-    void upDataToUI();
-
+    static Workstation* NewWorkstation(int station_number);
     ~Workstation();
-private slots:
-    void upDataToDb(QList<QByteArray> array);
-    void onGetBack(char num);
-    void DONE();
-    void Calling();
-    void dataErr();
-
-
+signals:
+    void sendMessage(QByteArray message);
+    void checksumErr(QByteArray message);
+public slots:
+    void updateToBtn();
+    void onBtnCalling();
+    void ParseMessage(QByteArray& message);
 };
 
 #endif // WORKSTATION_H

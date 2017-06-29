@@ -20,10 +20,11 @@ static bool createConnection()
     QString tablename = "site";
     query.exec(QString("create table "+ tablename + " (id int primary key, name vchar)"));
     for(int x=1; x<=9; x++)
-        query.exec(QString("insert into  "+ tablename + "  values ("+QString::number(x)+",'NULL"+ QString::number(x+10)  +"')"));
+        query.exec(QString("insert into  "+ tablename + "  values ("+QString::number(x)+",'N"+ QString::number(x+10)  +"')"));
 
 
 
     return true;
 }
+
 #endif // CONNECTSQL_H

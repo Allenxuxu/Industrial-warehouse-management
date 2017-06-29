@@ -1,71 +1,65 @@
-#include "workstation.h"
-#include <QDebug>
-#include <QString>
-#include <QIcon>
-#include <QPixmap>
-#include <QBitmap>
-#include <QDesktopWidget>
-#include <QtGui/QApplication>
-#include <QTextCodec>
+#include "Workstation.h"
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QGridLayout>
 #include <QSqlQuery>
-Workstation::Workstation( char number,QDialog *parent) :
+#include <QVariant>
+#include <QByteArray>
+#include "LRCcheck.h"
+#include <QDebug>
+#include <QtGui/QApplication>
+#include <QDesktopWidget>
+#include <QSizePolicy>
+Workstation::Workstation(int station_number,QDialog *parent) :
     QDialog(parent)
-{  
-    station_number = number;
+{
+    m_station_number = station_number;
     initUI();
-    connect(&ledBtn,SIGNAL(clicked()),this,SLOT(DONE()));
     for(int i=0; i<9; i++)
     {
-        connect(&btn[i],SIGNAL(clicked()),this,SLOT(Calling()));
+        connect(&m_btn[i],SIGNAL(clicked()),this,SLOT(onBtnCalling()));
     }
-
 }
 
-bool Workstation::initUI()
+void Workstation::initUI()
 {
-    bool ret = true;
     setWindowFlags(Qt::FramelessWindowHint);
-    label.setText(tr("AGV呼叫器"));
-    label.setFont(QFont("wqy-microhei", 30, QFont::Black));
 
-    ledBtn.setStyleSheet("QPushButton{border:0px;}");
-    ledBtn.setIcon(QPixmap("image/arrow_left.png"));
-    ledBtn.setIconSize(QSize(25,25));
-    ledBtn.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    QGridLayout* glayout = new QGridLayout();
+    QHBoxLayout* hlayout = new QHBoxLayout();
 
-    stateBtn.setEnabled(false);
-    stateBtn.setStyleSheet("QPushButton{border:0px;}");
-    stateBtn.setText(QString::number(station_number)+"号工位");
-    stateBtn.setFont(QFont("wqy-microhei", 20, QFont::Bold));
-    stateBtn.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+
+    m_stateBtn.setEnabled(false);
+    m_stateBtn.setStyleSheet("QPushButton{border:3px solid black;border-radius:8px;color:red}");
+    m_stateBtn.setText(QString::number(m_station_number)+"\n号");
+    m_stateBtn.setFont(QFont("wqy-microhei", 40, QFont::Bold));
+
+    m_stateBtn.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     for(int i=0; i<9; i++)
     {
-        btn[i].setStyleSheet("background-color:green");
-        glayout.addWidget(&btn[i],i/3,i%3,Qt::AlignJustify);
+       m_btn[i].setStyleSheet("background-color:green;");
+       m_btn[i].setFixedSize(130,80);
+       glayout->addWidget(&m_btn[i],i/3,i%3,Qt::AlignAbsolute);
     }
-    upDataToUI();
-
-    hlayout.addWidget(&ledBtn,1,Qt::AlignLeft);
-    hlayout.addWidget(&label,4,Qt::AlignJustify);
-    hlayout.addWidget(&stateBtn,1,Qt::AlignRight);
-
-    QVBoxLayout* vlayout = new QVBoxLayout();
-    vlayout->addLayout(&hlayout);
-    vlayout->addLayout(&glayout);
-    vlayout->setStretchFactor(&hlayout,1);
-    vlayout->setStretchFactor(&glayout,6);
-    setLayout(vlayout);
+    glayout->setHorizontalSpacing(10);
+    glayout->setVerticalSpacing(10);
+    hlayout->addLayout(glayout);
+    hlayout->addWidget(&m_stateBtn);
+    hlayout->setStretchFactor(hlayout,2);
+    hlayout->setStretchFactor(glayout,5);
+    setLayout(hlayout);
 
     this->setAttribute(Qt::WA_ShowModal,true);
-    //resize(QApplication::desktop()->width(),QApplication::desktop()->height());
-    return ret;
+    resize(QApplication::desktop()->width(),QApplication::desktop()->height());
+    updateToBtn();
 }
 
-bool Workstation::Construct()
+bool Workstation::construct()
 {
     bool ret = true;
-    m_SerialPort = QextSerial::NewQextSerial("/dev/ttyS2",station_number);
+    m_SerialPort = SerialPort::NewQextSerial();
     if(!m_SerialPort)
     {
         qDebug()<< "fail open serial port";
@@ -73,74 +67,110 @@ bool Workstation::Construct()
     }
     else
     {
-
-        connect(m_SerialPort,SIGNAL(upData(QList<QByteArray>)),this,SLOT(upDataToDb(QList<QByteArray>)));
-        connect(m_SerialPort,SIGNAL(getBack(char)),this,SLOT(onGetBack(char)));
-        connect(m_SerialPort,SIGNAL(dataerror()),this,SLOT(dataErr()));
+        connect(m_SerialPort,SIGNAL(RecePacket(QByteArray&)),this,SLOT(ParseMessage(QByteArray&)));
+        connect(this,SIGNAL(sendMessage(QByteArray)),m_SerialPort,SLOT(sendData(QByteArray)));
     }
 
     return ret;
 }
 
-Workstation::~Workstation()
-{    
-    delete m_SerialPort;
-    qDebug()<< "~Workstation()";
-}
-
-
-
-void Workstation::onGetBack(char num)
+void Workstation::updateToBtn()
 {
-    qDebug()<<"number" << QString::number(num);
-    btn[(int)num].setStyleSheet("background-color:green");
+   QSqlQuery query;
+   query.exec("select * from  site");
+   for(int i=0; i<9; i++)
+   {
+       query.seek(i);
+       m_btn[i].setText(query.value(1).toString());
+       qDebug()<< query.value(1).toString();
+   }
 }
 
-void Workstation::DONE()
-{
-    done(11);
-}
-
-void Workstation::Calling()
+void Workstation::onBtnCalling()
 {
     QPushButton* Sender = dynamic_cast<QPushButton*>(sender());
-    for(int i=0; i<9; i++)
+   for(int i=0; i<9; i++)
+   {
+       if(Sender == &m_btn[i])
+       {
+           emit sendMessage(packingMessages(MessageType_calling,static_cast<char>(i+1)));
+
+           m_btn[i].setStyleSheet("background-color:red");
+           break;
+       }
+   }
+}
+
+void Workstation::ParseMessage(QByteArray &message)
+{
+
+    if(message.data()[1] == 0x00)
     {
-        if(Sender == &btn[i])
+        if(message.data()[2] == static_cast<char>(m_station_number))
         {
-            QByteArray array;
-            array.append("U");
-            array.append(station_number);
-            array.append("c");
-            char ii = static_cast<char>( i);
-            array.append(ii);
-            array.append('2');
-            array.append("#");
-            m_SerialPort->onSend(array);
-            btn[i].setStyleSheet("background-color:red");
-            break;
+            char lrc;
+            switch (message.data()[3])
+            {
+            case 'u':
+                message.chop(1);
+                lrc = LRC(message.mid(4).data(),message.size()-5);
+                if(message.right(1).data()[0] == lrc)
+                {
+                    message.chop(1);
+                    qDebug()<< message.mid(4).split(',');
+                    updateDB(message.mid(4).split(','));
+
+
+                }
+                else
+                {
+                    emit checksumErr(packingMessages(MessageType_dataErr));
+                }
+                break;
+            case 'g':
+                receReply(message.data()[4]);
+                break;
+            }
         }
     }
 }
 
-void Workstation::dataErr()
+
+QByteArray Workstation::packingMessages(char type, char data)
 {
-    qDebug()<<"data error";
     QByteArray array;
-    array.append("U");
-    array.append(station_number);
-    array.append("e");
-    array.append("2");
-    array.append('2');
+    array.append('U');
+    array.append(static_cast<char>(m_station_number));
+    array.append(static_cast<char>(0));
+    array.append(type);
+    array.append(data);
+    array.append(LRC(&data,1));
     array.append("#");
-    m_SerialPort->onSend(array);
+    return array;
 }
 
-Workstation *Workstation::NewWorkstation(char number)
+void Workstation::updateDB(QList<QByteArray> array)
 {
-    Workstation* ret = new Workstation(number);
+   QSqlQuery query;
+   for(int i=0; i<9; i++)
+   {
+       qDebug()<< QString(array[i]);
+       qDebug()<< query.exec("update site set name=\" "+ QString(array[i]) + " \"where id=\" "+ QString::number(i+1)+ "\"");
+   }
 
-    if(!(ret && ret->Construct()) )
+   updateToBtn();
+}
+
+void Workstation::receReply(char i)
+{
+    m_btn[static_cast<int>(i)-1].setStyleSheet("background-color:green");
+}
+
+Workstation *Workstation::NewWorkstation(int station_number)
+{
+    Workstation* ret = new Workstation(station_number);
+
+    if(!(ret && ret->construct()) )
     {
        delete ret;
        ret = NULL;
@@ -149,28 +179,9 @@ Workstation *Workstation::NewWorkstation(char number)
     return ret;
 }
 
-void Workstation::upDataToUI()
+Workstation::~Workstation()
 {
-
-    QSqlQuery query;
-    query.exec("select * from  site");
-    for(int i=0; i<9; i++)
-    {
-        query.seek(i);
-        btn[i].setText(query.value(1).toString());
-    }
+    delete m_SerialPort;
 }
 
-void Workstation::upDataToDb(QList<QByteArray> array)
-{
-    QSqlQuery query;
-    for(int i=0; i<9; i++)
-    {
-        qDebug()<< QString(array[i]);
-        query.exec("update site set name=\" "+ QString(array[i]) + " \"where id=\" "+ QString::number(i+1)+ "\"");
-
-    }
-    sleep(1);
-    upDataToUI();
-}
 

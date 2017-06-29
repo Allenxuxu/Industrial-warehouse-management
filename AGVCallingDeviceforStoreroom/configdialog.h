@@ -3,22 +3,25 @@
 #include <QPushButton>
 #include <QDialog>
 #include <QLineEdit>
-class COnfigDialog : public QDialog
+
+#include <QDialog>
+
+class ConfigDialog : public QDialog
 {
     Q_OBJECT
-    int m_ret;
-    QLineEdit textEdit;
-    QPushButton pushBtn[8];
-    QPushButton OKBtn;
-    QPushButton CloseBtn;
+    int m_id;
+    QLineEdit m_textEdit;
+    QPushButton m_pushBtn[8];
+    QPushButton m_OKBtn;
+    QPushButton m_CloseBtn;
+    void initUI();
 public:
-    explicit COnfigDialog();
-    int getInt();
-signals:
-
-private slots:
-    void ongetPushBtnValue();
-    void onOKBtn();
+    explicit ConfigDialog(QWidget *parent = 0);
+    int getID();
+public slots:
+    void onBtnClicked();
+    void onOkBtnClicked();
+    
 };
 
 #endif // CONFIGDIALOG_H

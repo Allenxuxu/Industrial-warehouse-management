@@ -1,112 +1,79 @@
 #include "widget.h"
-#include <QIcon>
-#include <QSize>
-#include <QInputDialog>
-#include <QDebug>
-#include <QFile>
-#include <QTextStream>
-#include <QDataStream>
-#include <QDir>
 #include <QGridLayout>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
-#include <QString>
+#include "ConfigDialog.h"
+#include <QTextStream>
+#include <QFile>
+#include <QDir>
 #include <QtGui/QApplication>
 #include <QDesktopWidget>
-#include <QDialogButtonBox>
-#include <QDialog>
-#include <configdialog.h>
-
 Widget::Widget(QWidget *parent)
-    : QWidget(parent),configBtn(this),openCallingBtn(this)
+    : QWidget(parent)
 {
     initUI();
 
-    connect(&configBtn,SIGNAL(clicked()),this,SLOT(Config_station_number()));
-    connect(&openCallingBtn,SIGNAL(clicked()),this,SLOT(Open_CallingDevice()));
-
-}
-
-bool Widget::Construct()
-{
-    bool ret = true;
-    return ret;
-}
-
-bool Widget::initUI()
-{
-    bool ret = true;
-    setWindowFlags(Qt::FramelessWindowHint);
-    QGridLayout* gLayout = new QGridLayout(this);
-    configBtn.setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    configBtn.setIcon(QIcon(":image/Work_256px_1077397_easyicon.net.png"));
-    configBtn.setIconSize(QSize(150,150));
-
-    configBtn.setText("配置工位号");
-    configBtn.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    openCallingBtn.setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
-    openCallingBtn.setIcon(QIcon(":image/Processing_203px_1200028_easyicon.net.png"));
-    openCallingBtn.setIconSize(QSize(150,150));
-
-    openCallingBtn.setText(tr("打开呼叫器"));
-    openCallingBtn.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);  
-
-
-    gLayout->addWidget(&configBtn,0,0);
-    gLayout->addWidget(&openCallingBtn,0,1);
-
-    //resize(QApplication::desktop()->width(),QApplication::desktop()->height());
-    return ret;
-}
-
-Widget *Widget::NewAGV_Calling_device()
-{
-    Widget* ret = new Widget();
-
-   if( !(ret && ret->Construct()) )
-   {
-       delete ret;
-       ret = NULL;
-   }
-   return ret;
+    connect(&m_configBtn,SIGNAL(clicked()),this,SLOT(configStationNum()));
+    connect(&m_openCallingBtn,SIGNAL(clicked()),this,SLOT(openCallingDev()));
 }
 
 Widget::~Widget()
 {
-
+    
 }
 
-void Widget::Config_station_number()
-{   
-    COnfigDialog ConfigDlg;
+void Widget::configStationNum()
+{
+    ConfigDialog ConfigDlg;
     if(1 == ConfigDlg.exec())
     {
         QFile file(QDir::currentPath()+ "/station_number.txt");
         if( file.open(QIODevice::WriteOnly | QIODevice::Text) )
         {
                 QTextStream out(&file);
-                out << ConfigDlg.getInt();
+                out << ConfigDlg.getID();
                 file.close();
         }
     }
 }
 
-void Widget::Open_CallingDevice()
+void Widget::initUI()
 {
+   setWindowFlags(Qt::FramelessWindowHint);
+   QGridLayout* gLayout = new QGridLayout(this);
+   m_configBtn.setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+   m_configBtn.setIcon(QIcon(":image/Work_256px_1077397_easyicon.net.png"));
+   m_configBtn.setIconSize(QSize(150,150));
 
+   m_configBtn.setText(tr("配置工位号"));
+   m_configBtn.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+   m_openCallingBtn.setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+   m_openCallingBtn.setIcon(QIcon(":image/Processing_203px_1200028_easyicon.net.png"));
+   m_openCallingBtn.setIconSize(QSize(150,150));
+
+   m_openCallingBtn.setText(tr("打开呼叫器"));
+   m_openCallingBtn.setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+
+   gLayout->addWidget(&m_configBtn,0,0);
+   gLayout->addWidget(&m_openCallingBtn,0,1);
+
+   resize(QApplication::desktop()->width(),QApplication::desktop()->height());
+}
+
+void Widget::openCallingDev()
+{
     QFile file(QDir::currentPath()+ "/station_number.txt");
     if( file.open(QIODevice::ReadOnly | QIODevice::Text) )
     {
         QTextStream in(&file);
         while( !in.atEnd() )
         {
-            station_number = in.readAll().toInt();
-            workstation =  Workstation:: NewWorkstation(station_number);
-            if(workstation!= NULL)
+            m_station_number = in.readAll().toInt();
+            m_workstation =  Workstation:: NewWorkstation(m_station_number);
+            if(m_workstation!= NULL)
             {
-                workstation->exec();
-                delete workstation;
+                m_workstation->exec();
+                delete m_workstation;
             }
         }
         file.close();

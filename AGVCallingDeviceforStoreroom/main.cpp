@@ -1,8 +1,8 @@
 #include <QtGui/QApplication>
 #include "widget.h"
+#include "ConnectSQL.h"
 #include <QTextCodec>
 #include <QFontDatabase>
-#include "connectSQl.h"
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -10,18 +10,11 @@ int main(int argc, char *argv[])
     QTextCodec::setCodecForLocale(QTextCodec::codecForName("UTF-8"));
     QTextCodec::setCodecForTr(QTextCodec::codecForName("UTF-8"));
     QTextCodec::setCodecForCStrings(QTextCodec::codecForName("UTF-8"));
-
-    createConnection(); //打开数据库
     QFontDatabase::addApplicationFont(":image/wqy-microhei.ttf");
-    Widget* w = Widget::NewAGV_Calling_device();
-    int ret = -1;
-    if(w != NULL)
-    {
-        w->setFont(QFont("microhei",30,QFont::Normal));
-        w->show();
-        ret = a.exec();
-    }
-    delete w;
+    createConnection();
+    Widget w;
+    w.setFont(QFont("wqy-microhei",30,QFont::Normal));
+    w.show();
     
-    return ret;
+    return a.exec();
 }

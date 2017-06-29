@@ -3,31 +3,23 @@
 
 #include <QtGui/QWidget>
 #include <QToolButton>
-#include <QLabel>
-#include "workstation.h"
-
-
+#include "Workstation.h"
 class Widget : public QWidget
 {
     Q_OBJECT
+    char m_station_number;
+    Workstation* m_workstation;
+    QToolButton m_configBtn;
+    QToolButton m_openCallingBtn;
 
-    char station_number;
 
-    Workstation* workstation;
-    QToolButton configBtn;
-    QToolButton openCallingBtn;
-    Widget(QWidget *parent = 0);
-    bool Construct();
-    bool initUI();
-
+    void initUI();
 public:
-    static Widget* NewAGV_Calling_device();
+    Widget(QWidget *parent = 0);
     ~Widget();
-
 protected slots:
-    void Config_station_number();
-    void Open_CallingDevice();
-
+    void configStationNum();
+    void openCallingDev();
 };
 
 #endif // WIDGET_H

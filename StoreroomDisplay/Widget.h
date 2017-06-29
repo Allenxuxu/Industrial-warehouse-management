@@ -1,27 +1,39 @@
 #ifndef WIDGET_H
 #define WIDGET_H
 
-#include <QWidget>
-#include <WorkstationBox.h>
-#include "qextserial.h"
+#include <QtGui/QWidget>
+#include "SerialPort.h"
+#include "WorkstationBox.h"
 
 class Widget : public QWidget
 {
     Q_OBJECT
+    char LRC(const char* src, int len)
+    {
+        char lrc = 0;
+        for(int i = 0;i<len;i++)
+        {
+            lrc += src[i];
+        }
+        lrc = (~lrc)+1;
+        return lrc;
+    }
 
-    QextSerial *m_SerialPort;
-    WorkstationBox m_Workstation[8];
+    SerialPort *m_SerialPort;
+    WorkstationBox* m_Workstation[8];
+
     bool initUI();
-public:
-    explicit Widget(QWidget *parent = 0);
-    
+
 signals:
-    
+    void calling(char id,char number);
+    void dataErr(char id);
+public:
+    Widget(QWidget *parent = 0);
+    ~Widget();
 public slots:
-    void getCallingfrom(char id, char number);
-    void getBackfrom(char id ,char number);
-    void updataToOthers();
-    
+    void sendDataErr(char id);
+    void getcalling(char id,char number);
+    void ParseMessage(QByteArray &message);
 };
 
 #endif // WIDGET_H

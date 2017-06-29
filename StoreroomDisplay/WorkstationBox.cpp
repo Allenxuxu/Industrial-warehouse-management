@@ -1,73 +1,62 @@
 #include "WorkstationBox.h"
 #include <QGridLayout>
-#include <QPixmap>
-#include <QIcon>
-#include <QDebug>
-#include <QTextCodec>
-#include <QFontDatabase>
-#include "DataDialog.h"
-WorkstationBox::WorkstationBox(QGroupBox *parent) :
+#include "ModifyDataDialog.h"
+#include <QSqlQuery>
+#include <QMessageBox>
+
+WorkstationBox::WorkstationBox(int id,QGroupBox *parent) :
     QGroupBox(parent)
 {
-    initUI();
-    connect(&m_updateBtn,SIGNAL(clicked()),this,SLOT(updatData()));
-    connect(&m_updateToother,SIGNAL(clicked()),this,SLOT(packingMessages()));
-    for(int i=0; i<9; i++)
+     m_id = id;
+     initUI();
+     connect(&m_updateBtn,SIGNAL(clicked()),this,SLOT(updateDB()));
+     connect(&m_updateToother,SIGNAL(clicked()),this,SLOT(sendNewInfo()));
+     connect(&m_updateToother,SIGNAL(clicked()),this,SLOT(onResend()));
+     for(int i=0; i<9; i++)
+     {
+         connect(&m_materielBtn[i],SIGNAL(clicked()),this,SLOT(Reply()));
+     }
+}
+
+
+void WorkstationBox::initUI()
+{
+    setTitle(QString::number(m_id)+QString(" 号工位"));
+    for(int i=0; i<9;i++)
     {
-        connect(&m_materielBtn[i],SIGNAL(clicked()),this,SLOT(onclicked()));
+
+        m_materielBtn[i].setStyleSheet("QPushButton{border:0px;}");
+        m_materielBtn[i].setIcon(QPixmap(":res/icon/green.png"));
+        m_materielBtn[i].setIconSize(QSize(20,20));
+        m_materielBtn[i].setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        m_materielEdit[i].setStyleSheet("border:2px solid gray;");
+        m_materielEdit[i].setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     }
-}
-
-void WorkstationBox::setId(int id)
-{
-    m_id = id;
-    refreshInterface();
-}
-
-void WorkstationBox::onclicked()
-{
-    QPushButton* btn = dynamic_cast<QPushButton*>(sender());
-    for(int i=0; i<9; i++)
+    QGridLayout* glayout = new QGridLayout();
+    for(int i=0; i<9;i++)
     {
-        if(btn == &m_materielBtn[i])
-        {
-
-            QByteArray array;
-            array.append("U");
-            array.append((char)0);
-            array.append("g");
-            char ii = static_cast<char>( i);
-             qDebug()<< "pushbitn :"<< QString::number(ii);
-            array.append(ii);
-            array.append('2');
-            array.append("#");
-            emit sendMessage(array);
-            break;
-        }
+        glayout->addWidget(&m_materielBtn[i],i,0);
+        glayout->addWidget(&m_materielEdit[i],i,1);
     }
-    btn->setIcon(QPixmap(":res/icon/green.png"));
+    m_updateBtn.setText("修改");
+    m_updateBtn.setStyleSheet("QPushButton{"
+                              "border:3px solid black;"
+                              "border-radius:8px}");
+    m_updateToother.setText("更新");
+    m_updateToother.setStyleSheet("QPushButton{"
+                              "border:3px solid black;"
+                              "border-radius:8px}");
+    glayout->addWidget(&m_updateToother,7,3);
+    glayout->addWidget(&m_updateBtn,8,3);
+    glayout->setColumnStretch(0,1);
+    glayout->setColumnStretch(1,8);
+    glayout->setVerticalSpacing(20);
+    setLayout(glayout);
+
+    updateInterface();
 }
 
-void WorkstationBox::ongetCalling(char number)
-{    
-        qDebug()<< " WorkstationBox::ongetCalling()";
-        m_materielBtn[(int)number].setIcon(QPixmap(":res/icon/red.png"));
-}
-
-void WorkstationBox::ongetReply(char number)
-{
-        qDebug()<< " WorkstationBox::ongetReply()";
-        m_materielBtn[(int)number].setIcon(QPixmap(":res/icon/green.png"));
-}
-
-void WorkstationBox::updatData()
-{
-    DataDialog w(m_id);
-    w.exec();
-    refreshInterface();
-}
-
-void WorkstationBox::refreshInterface()
+void WorkstationBox::updateInterface()
 {
     QSqlQuery query;
     query.exec("select * from  site"+QString::number(m_id));
@@ -76,18 +65,28 @@ void WorkstationBox::refreshInterface()
         query.seek(i);
         m_materielEdit[i].setText(query.value(1).toString());
     }
-    packingMessages();
+
+    sendNewInfo();
 }
 
-void WorkstationBox::packingMessages()
+QByteArray WorkstationBox::packingMessages(char type, QByteArray data)
+{
+    QByteArray array;
+    array.append('U');
+    array.append(static_cast<char>(0));
+    array.append(static_cast<char>(m_id));
+    array.append(type);
+    array.append(data);
+    array.append(LRC(data.data(),data.size()));
+    array.append('#');
+    return array;
+}
+
+void WorkstationBox::sendNewInfo()
 {
     QSqlQuery query;
-    QByteArray message;
     QByteArray array;
 
-    message.append("U");
-    message.append((char)0);
-    message.append("u");
     query.exec("select * from  site"+QString::number(m_id));
     for(int i=0; i<9; i++)
     {
@@ -96,49 +95,45 @@ void WorkstationBox::packingMessages()
         array.append(",");
     }
     array.chop(1);
-    char lrc = LRC(array.data(),array.size());
-    message.append(array);
-    message.append(lrc);
-    message.append("#");
-
-    emit sendMessage(message);
+    emit updateStationInfo(packingMessages(MessageType_updateInfo,array));
 }
 
-bool WorkstationBox::initUI()
+void WorkstationBox::updateInfoErr()
 {
-    bool ret = true;
-    for(int i=0; i<9;i++)
-    {
-
-        m_materielBtn[i].setStyleSheet("QPushButton{border:0px;}");
-        m_materielBtn[i].setIcon(QPixmap(":res/icon/green.png"));
-        m_materielBtn[i].setIconSize(QSize(20,20));
-        m_materielBtn[i].setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-        m_materielEdit[i].setReadOnly(true);
-    }
-    QGridLayout* glayout = new QGridLayout();
-    for(int i=0; i<9;i++)
-    {
-        glayout->addWidget(&m_materielBtn[i],i,0);
-        glayout->addWidget(&m_materielEdit[i],i,1);
-    }
-    m_updateBtn.setText("Modify data");
-    m_updateToother.setText("Update to Station");
-    glayout->addWidget(&m_updateToother,7,3);
-    glayout->addWidget(&m_updateBtn,8,3);
-    glayout->setColumnStretch(0,1);
-    glayout->setColumnStretch(1,8);
-    glayout->setVerticalSpacing(20);
-    setLayout(glayout);
-    return ret;
+    QMessageBox::critical(this,tr("信息同步失败"),tr("工位同步信息失败，请手动跟新!"));
+    //sendNewInfo();//重发
 }
-char WorkstationBox::LRC(const char* src, int len)
+
+void WorkstationBox::updateDB()
 {
-    char lrc = 0;
-    for(int i = 0;i<len;i++)
+    ModifyDataDialog w(m_id);
+    w.exec();
+    updateInterface();
+}
+
+void WorkstationBox::getCalling(char number)
+{
+    m_materielBtn[static_cast<int>(number)-1].setIcon(QPixmap(":res/icon/red.png"));
+}
+
+void WorkstationBox::Reply()
+{
+    QPushButton* btn = dynamic_cast<QPushButton*>(sender());
+    for(int i=0; i<9; i++)
     {
-        lrc += src[i];
+        if(btn == &m_materielBtn[i])
+        {
+
+            QByteArray array;
+            array.append(i+1);
+            emit getRequest(packingMessages(MessageType_recvReply,array));
+            break;
+        }
     }
-    lrc = (~lrc)+1;
-    return lrc;
+    btn->setIcon(QPixmap(":res/icon/green.png"));
+}
+
+void WorkstationBox::onResend()
+{
+     QMessageBox::information(this,tr("提示"),tr("已重新发送!"));
 }

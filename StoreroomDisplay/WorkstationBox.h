@@ -1,37 +1,56 @@
 #ifndef WORKSTATIONBOX_H
 #define WORKSTATIONBOX_H
 
-
 #include <QGroupBox>
-#include <QLineEdit>
+#include <QLabel>
 #include <QPushButton>
+#include <QByteArray>
 
 class WorkstationBox : public QGroupBox
 {
     Q_OBJECT
+    enum
+    {
+        MessageType_dataErr = 'e',
+        MessageType_calling = 'c',
+        MessageType_recvReply = 'g',
+        MessageType_updateInfo = 'u'
+    }MessageType;
+    char LRC(const char* src, int len)
+    {
+        char lrc = 0;
+        for(int i = 0;i<len;i++)
+        {
+            lrc += src[i];
+        }
+        lrc = (~lrc)+1;
+        return lrc;
+    }
+
+
     int m_id;
-    QLineEdit m_materielEdit[9];
+    QLabel m_materielEdit[9];
     QPushButton m_materielBtn[9];
     QPushButton m_updateBtn;
     QPushButton m_updateToother;
-    bool initUI();
-    char LRC(const char* src, int len);
+    void initUI();
+    void updateInterface();
+    QByteArray packingMessages(char type,QByteArray data);
+
 public:
-    explicit WorkstationBox(QGroupBox *parent = 0);
-
-    void ongetCalling(char number);
-    void ongetReply(char number);
-
-
+    WorkstationBox(int id,QGroupBox *parent = 0);
+    void updateInfoErr();
+    void getCalling(char number);
 signals:
-    void sendMessage(QByteArray message);
+    void updateStationInfo(QByteArray array);
+    void getRequest(QByteArray array);
 public slots:
-    void packingMessages();
-    void setId(int id);
-    void onclicked();
-    void updatData();
-    void refreshInterface();
+    void Reply();
 
+    void onResend();
+    void updateDB();
+    void sendNewInfo();
+    
 };
 
 #endif // WORKSTATIONBOX_H

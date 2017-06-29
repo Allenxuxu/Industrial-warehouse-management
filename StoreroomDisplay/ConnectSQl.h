@@ -1,5 +1,7 @@
 #ifndef CONNECTSQL_H
 #define CONNECTSQL_H
+
+
 #include <QMessageBox>
 #include <QSqlDatabase>
 #include <QSqlQuery>
@@ -26,5 +28,4 @@ static bool createConnection()
 
     return true;
 }
-
 #endif // CONNECTSQL_H

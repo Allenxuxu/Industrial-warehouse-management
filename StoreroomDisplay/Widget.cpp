@@ -61,7 +61,8 @@ bool Widget::initUI()
     }
     glayout->setSpacing(20);
     setLayout(glayout);
-    //resize(QApplication::desktop()->width(),QApplication::desktop()->height());
+    setWindowFlags(Qt::FramelessWindowHint);
+    resize(QApplication::desktop()->width(),QApplication::desktop()->height());
     return ret;
 }
 

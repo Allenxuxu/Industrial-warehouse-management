@@ -21,6 +21,8 @@ WorkstationBox::WorkstationBox(int id,QGroupBox *parent) :
 
 void WorkstationBox::initUI()
 {
+    setFont(QFont("wqy-microhei", 25, QFont::Bold));
+
     setTitle(QString::number(m_id)+QString(" 号工位"));
     for(int i=0; i<9;i++)
     {
@@ -50,7 +52,7 @@ void WorkstationBox::initUI()
     glayout->addWidget(&m_updateBtn,8,3);
     glayout->setColumnStretch(0,1);
     glayout->setColumnStretch(1,8);
-    glayout->setVerticalSpacing(20);
+    glayout->setVerticalSpacing(15);
     setLayout(glayout);
 
     updateInterface();

@@ -52,7 +52,7 @@ void Workstation::initUI()
     setLayout(hlayout);
 
     this->setAttribute(Qt::WA_ShowModal,true);
-    resize(QApplication::desktop()->width(),QApplication::desktop()->height());
+    //resize(QApplication::desktop()->width(),QApplication::desktop()->height());
     updateToBtn();
 }
 

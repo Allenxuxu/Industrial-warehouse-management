@@ -8,7 +8,7 @@ SerialPort::SerialPort(QObject *parent) :
 bool SerialPort::construct()
 {
     bool ret = true;
-    m_port = new QextSerialPort("/dev/ttymxc1",QextSerialPort::EventDriven);
+    m_port = new QextSerialPort("/dev/ttyUSB0",QextSerialPort::EventDriven);
     if(m_port != NULL)
     {
         m_port->setBaudRate(BAUD9600);

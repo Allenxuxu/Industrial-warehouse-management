@@ -14,7 +14,9 @@ class Workstation : public QDialog
    {
        MessageType_dataErr = 'e',
        MessageType_calling = 'c',
-       MessageType_recvReply = 'g'
+       MessageType_recvReply = 'g',
+       MessageType_recvSucess = 's',
+       MessageType_quitCall = 'q'
    }MessageType;
 
    SerialPort* m_SerialPort;
@@ -23,6 +25,7 @@ class Workstation : public QDialog
    QPushButton m_quickBtn;
    QPushButton m_stateBtn;
    QPushButton m_btn[9];
+   bool m_btnStatus[9];
 
     Workstation(int station_number,QDialog *parent = 0);
     void initUI();
@@ -30,6 +33,8 @@ class Workstation : public QDialog
     QByteArray packingMessages(char type, char data=0);
     void updateDB(QList<QByteArray> array);
     void receReply(char i);
+    void perReceSucess(char i);
+    void getupdatainfo();
 public:
     static Workstation* NewWorkstation(int station_number);
     ~Workstation();

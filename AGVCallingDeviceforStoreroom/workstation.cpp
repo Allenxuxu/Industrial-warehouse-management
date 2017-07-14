@@ -17,6 +17,7 @@ Workstation::Workstation(int station_number,QDialog *parent) :
     initUI();
     for(int i=0; i<9; i++)
     {
+        m_btnStatus[i] = true;
         connect(&m_btn[i],SIGNAL(clicked()),this,SLOT(onBtnCalling()));
     }
 }
@@ -39,6 +40,7 @@ void Workstation::initUI()
 
     for(int i=0; i<9; i++)
     {
+       m_btn[i].setFont(QFont("wqy-microhei", 10, QFont::Black));
        m_btn[i].setStyleSheet("background-color:green;");
        m_btn[i].setFixedSize(130,80);
        glayout->addWidget(&m_btn[i],i/3,i%3,Qt::AlignAbsolute);
@@ -82,7 +84,7 @@ void Workstation::updateToBtn()
    {
        query.seek(i);
        m_btn[i].setText(query.value(1).toString());
-       qDebug()<< query.value(1).toString();
+
    }
 }
 
@@ -93,10 +95,19 @@ void Workstation::onBtnCalling()
    {
        if(Sender == &m_btn[i])
        {
-           emit sendMessage(packingMessages(MessageType_calling,static_cast<char>(i+1)));
+           if(m_btnStatus[i])
+           {
+               emit sendMessage(packingMessages(MessageType_calling,static_cast<char>(i+1)));
 
-           m_btn[i].setStyleSheet("background-color:red");
-           break;
+               m_btn[i].setStyleSheet("background-color:yellow");
+               break;
+           }
+           else
+           {
+               emit sendMessage(packingMessages(MessageType_quitCall,static_cast<char>(i+1)));
+               m_btn[i].setStyleSheet("background-color:yellow");
+               break;
+           }
        }
    }
 }
@@ -112,15 +123,15 @@ void Workstation::ParseMessage(QByteArray &message)
             switch (message.data()[3])
             {
             case 'u':
+
                 message.chop(1);
                 lrc = LRC(message.mid(4).data(),message.size()-5);
                 if(message.right(1).data()[0] == lrc)
                 {
+                    getupdatainfo();
                     message.chop(1);
-                    qDebug()<< message.mid(4).split(',');
+
                     updateDB(message.mid(4).split(','));
-
-
                 }
                 else
                 {
@@ -129,6 +140,9 @@ void Workstation::ParseMessage(QByteArray &message)
                 break;
             case 'g':
                 receReply(message.data()[4]);
+                break;
+            case 's':
+                perReceSucess(message.data()[4]);
                 break;
             }
         }
@@ -154,8 +168,7 @@ void Workstation::updateDB(QList<QByteArray> array)
    QSqlQuery query;
    for(int i=0; i<9; i++)
    {
-       qDebug()<< QString(array[i]);
-       qDebug()<< query.exec("update site set name=\" "+ QString(array[i]) + " \"where id=\" "+ QString::number(i+1)+ "\"");
+       query.exec("update site set name=\" "+ QString(array[i]) + " \"where id=\" "+ QString::number(i+1)+ "\"");
    }
 
    updateToBtn();
@@ -163,7 +176,28 @@ void Workstation::updateDB(QList<QByteArray> array)
 
 void Workstation::receReply(char i)
 {
+    emit sendMessage(packingMessages(MessageType_recvSucess,static_cast<char>(i)));
+    m_btnStatus[static_cast<int>(i)-1] = true;
     m_btn[static_cast<int>(i)-1].setStyleSheet("background-color:green");
+}
+
+void Workstation::perReceSucess(char i)
+{
+    if(m_btnStatus[static_cast<int>(i)-1] == true)
+    {
+        m_btnStatus[static_cast<int>(i)-1] = false;
+        m_btn[static_cast<int>(i)-1].setStyleSheet("background-color:red");
+    }
+    else
+    {
+        m_btnStatus[static_cast<int>(i)-1] = true;
+        m_btn[static_cast<int>(i)-1].setStyleSheet("background-color:green");
+    }
+}
+
+void Workstation::getupdatainfo()
+{
+     emit sendMessage(packingMessages(MessageType_recvReply,static_cast<char>(0)));
 }
 
 Workstation *Workstation::NewWorkstation(int station_number)
@@ -175,7 +209,7 @@ Workstation *Workstation::NewWorkstation(int station_number)
        delete ret;
        ret = NULL;
     }
-    qDebug()<< ret;
+
     return ret;
 }
 

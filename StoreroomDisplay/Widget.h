@@ -25,14 +25,20 @@ class Widget : public QWidget
     bool initUI();
 
 signals:
+    void quitCalling(char id,char number);
     void calling(char id,char number);
+    void perRecvSucess(char id,char number);
     void dataErr(char id);
+    void perGetinfo(char id);
 public:
     Widget(QWidget *parent = 0);
     ~Widget();
 public slots:
+    void onPerGet(char id);
     void sendDataErr(char id);
     void getcalling(char id,char number);
+    void onquitcalling(char id,char number);
+    void getperRecvSucess(char id,char number);
     void ParseMessage(QByteArray &message);
 };
 

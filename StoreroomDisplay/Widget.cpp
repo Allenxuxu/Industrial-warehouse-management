@@ -20,9 +20,13 @@ Widget::Widget(QWidget *parent)
     {
         connect(m_Workstation[i],SIGNAL(updateStationInfo(QByteArray)),m_SerialPort,SLOT(sendData(QByteArray)));
         connect(m_Workstation[i],SIGNAL(getRequest(QByteArray)),m_SerialPort,SLOT(sendData(QByteArray)));
+        connect(m_Workstation[i],SIGNAL(notifPerRecvSucess(QByteArray)),m_SerialPort,SLOT(sendData(QByteArray)));
     }
+    connect(this,SIGNAL(perGetinfo(char)),this,SLOT(onPerGet(char)));
     connect(this,SIGNAL(dataErr(char)),this,SLOT(sendDataErr(char)));
     connect(this,SIGNAL(calling(char,char)),this,SLOT(getcalling(char,char)));
+    connect(this,SIGNAL(quitCalling(char,char)),this,SLOT(onquitcalling(char,char)));
+    connect(this,SIGNAL(perRecvSucess(char,char)),this,SLOT(getperRecvSucess(char,char)));
 }
 
 Widget::~Widget()
@@ -32,6 +36,11 @@ Widget::~Widget()
         delete m_Workstation[i];
 }
 
+void Widget::onPerGet(char id)
+{
+    m_Workstation[static_cast<int>(id)-1]->onPerGetinfo();
+}
+
 void Widget::sendDataErr(char id)
 {
     m_Workstation[static_cast<int>(id)-1]->updateInfoErr();
@@ -39,7 +48,19 @@ void Widget::sendDataErr(char id)
 
 void Widget::getcalling(char id, char number)
 {
-    m_Workstation[static_cast<int>(id-1)]->getCalling(number);
+    m_Workstation[static_cast<int>(id-1)]->onrecvSucess(number);
+    m_Workstation[static_cast<int>(id-1)]->btnToRed(number);
+}
+
+void Widget::onquitcalling(char id, char number)
+{
+    m_Workstation[static_cast<int>(id-1)]->onrecvSucess(number);
+    m_Workstation[static_cast<int>(id-1)]->btnToGreen(number);
+}
+
+void Widget::getperRecvSucess(char id, char number)
+{
+    m_Workstation[static_cast<int>(id-1)]->btnToGreen(number);
 }
 
 bool Widget::initUI()
@@ -76,8 +97,8 @@ void Widget::ParseMessage(QByteArray &message)
             char lrc;
             switch (message.data()[3])
             {
-            case 'g':
-
+            case 'g':                
+                emit  perGetinfo(message.data()[1]);
                 break;
             case 'c':
 
@@ -90,6 +111,22 @@ void Widget::ParseMessage(QByteArray &message)
                 break;
             case 'e':
                 emit dataErr(message.data()[1]);
+                break;
+            case 's':
+                message.chop(1);
+                lrc = LRC(message.mid(4).data(),message.size()-5);
+                if(message.right(1).data()[0] == lrc)
+                {
+                    emit perRecvSucess(message.data()[1],message.data()[4]);
+                }
+                break;
+            case 'q':
+                message.chop(1);
+                lrc = LRC(message.mid(4).data(),message.size()-5);
+                if(message.right(1).data()[0] == lrc)
+                {
+                    emit quitCalling(message.data()[1],message.data()[4]);
+                }
                 break;
             }
         }

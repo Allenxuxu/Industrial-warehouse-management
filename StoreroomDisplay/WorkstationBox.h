@@ -14,7 +14,9 @@ class WorkstationBox : public QGroupBox
         MessageType_dataErr = 'e',
         MessageType_calling = 'c',
         MessageType_recvReply = 'g',
-        MessageType_updateInfo = 'u'
+        MessageType_updateInfo = 'u',
+        MessageType_recvSucess = 's',
+        MessageType_quitCall = 'q'
     }MessageType;
     char LRC(const char* src, int len)
     {
@@ -27,7 +29,7 @@ class WorkstationBox : public QGroupBox
         return lrc;
     }
 
-
+    char m_messageStatus;
     int m_id;
     QLabel m_materielEdit[9];
     QPushButton m_materielBtn[9];
@@ -40,14 +42,18 @@ class WorkstationBox : public QGroupBox
 public:
     WorkstationBox(int id,QGroupBox *parent = 0);
     void updateInfoErr();
-    void getCalling(char number);
+    void btnToRed(char number);
+    void btnToGreen(char number);
+    void onrecvSucess(char number);
+    void onPerGetinfo();
 signals:
     void updateStationInfo(QByteArray array);
     void getRequest(QByteArray array);
+    void notifPerRecvSucess(QByteArray array);
 public slots:
     void Reply();
 
-    void onResend();
+    void onupdateSucess();
     void updateDB();
     void sendNewInfo();
     

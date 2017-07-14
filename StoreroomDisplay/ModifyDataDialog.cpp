@@ -4,12 +4,14 @@
 ModifyDataDialog::ModifyDataDialog(int id,QWidget *parent) :
     QDialog(parent),m_okBtn(tr("确定"),this), m_cancleBen(tr("取消"),this)
 {
+    setWindowTitle(QString("双击选中单元格修改"));
+    setFixedSize(250,345);
     m_model = new QSqlTableModel(this);
     m_model->setTable("site"+QString::number(id));
     m_model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     m_model->select();
     m_tableView = new QTableView(this);
-    m_tableView->setMinimumSize(240,300);
+    m_tableView->setMinimumSize(250,300);
     m_tableView->setModel(m_model);
     m_tableView->setColumnHidden(0, true);
 

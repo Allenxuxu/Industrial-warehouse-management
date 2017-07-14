@@ -3,5 +3,6 @@
         <file>icon/green.png</file>
         <file>icon/red.png</file>
         <file>icon/wqy-microhei.ttf</file>
+        <file>icon/Yellow.png</file>
     </qresource>
 </RCC>

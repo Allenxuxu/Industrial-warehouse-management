@@ -3,15 +3,16 @@
 #include "ModifyDataDialog.h"
 #include <QSqlQuery>
 #include <QMessageBox>
-
+#include <QDebug>
 WorkstationBox::WorkstationBox(int id,QGroupBox *parent) :
     QGroupBox(parent)
 {
+     m_messageStatus =true;
      m_id = id;
      initUI();
      connect(&m_updateBtn,SIGNAL(clicked()),this,SLOT(updateDB()));
      connect(&m_updateToother,SIGNAL(clicked()),this,SLOT(sendNewInfo()));
-     connect(&m_updateToother,SIGNAL(clicked()),this,SLOT(onResend()));
+
      for(int i=0; i<9; i++)
      {
          connect(&m_materielBtn[i],SIGNAL(clicked()),this,SLOT(Reply()));
@@ -43,10 +44,12 @@ void WorkstationBox::initUI()
     m_updateBtn.setText("修改");
     m_updateBtn.setStyleSheet("QPushButton{"
                               "border:3px solid black;"
-                              "border-radius:8px}");
+                              "background-color:white;"
+                              "border-radius:15px}");
     m_updateToother.setText("更新");
     m_updateToother.setStyleSheet("QPushButton{"
                               "border:3px solid black;"
+                              "background-color:white;"
                               "border-radius:8px}");
     glayout->addWidget(&m_updateToother,7,3);
     glayout->addWidget(&m_updateBtn,8,3);
@@ -67,8 +70,6 @@ void WorkstationBox::updateInterface()
         query.seek(i);
         m_materielEdit[i].setText(query.value(1).toString());
     }
-
-    sendNewInfo();
 }
 
 QByteArray WorkstationBox::packingMessages(char type, QByteArray data)
@@ -98,6 +99,10 @@ void WorkstationBox::sendNewInfo()
     }
     array.chop(1);
     emit updateStationInfo(packingMessages(MessageType_updateInfo,array));
+    m_updateToother.setStyleSheet("QPushButton{"
+                              "border:3px solid black;"
+                              "background-color:yellow;"
+                              "border-radius:8px}");
 }
 
 void WorkstationBox::updateInfoErr()
@@ -113,9 +118,30 @@ void WorkstationBox::updateDB()
     updateInterface();
 }
 
-void WorkstationBox::getCalling(char number)
+void WorkstationBox::btnToRed(char number)
 {
     m_materielBtn[static_cast<int>(number)-1].setIcon(QPixmap(":res/icon/red.png"));
+}
+
+void WorkstationBox::btnToGreen(char number)
+{
+    m_materielBtn[static_cast<int>(number)-1].setIcon(QPixmap(":res/icon/green.png"));
+}
+
+void WorkstationBox::onrecvSucess(char number)
+{
+    QByteArray array;
+    array.append(number);
+    emit notifPerRecvSucess(packingMessages(MessageType_recvSucess,array));
+}
+
+void WorkstationBox::onPerGetinfo()
+{
+    m_updateToother.setStyleSheet("QPushButton{"
+                              "border:3px solid black;"
+                              "background-color:white;"
+                              "border-radius:8px}");
+    onupdateSucess();
 }
 
 void WorkstationBox::Reply()
@@ -132,10 +158,15 @@ void WorkstationBox::Reply()
             break;
         }
     }
-    btn->setIcon(QPixmap(":res/icon/green.png"));
+    btn->setIcon(QPixmap(":res/icon/Yellow.png"));
 }
 
-void WorkstationBox::onResend()
+void WorkstationBox::onupdateSucess()
 {
-     QMessageBox::information(this,tr("提示"),tr("已重新发送!"));
+    if(m_messageStatus)
+    {
+        m_messageStatus = false;
+        QMessageBox::information(this,tr("提示"),tr("更新成功!"));
+        m_messageStatus = true;
+    }
 }
